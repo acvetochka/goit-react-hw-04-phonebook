@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useEffect, useState } from 'react';
 import Notiflix from 'notiflix';
 import { ContactForm } from '../ContactForm/ContactForm';
 import { Filter } from '../Filter/Filter';
@@ -7,80 +7,64 @@ import { Notification } from '../Notification/Notification';
 import { Section } from 'components/Section/Section';
 import { Container } from './App.styled';
 
-export class App extends Component {
-  state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
-  };
+export function App() {
+  const contactArray = [
+    { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
+    { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
+    { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
+    { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
+  ];
+  const storage = () => JSON.parse(window.localStorage.getItem('contacts'));
+  const [contacts, setContacts] = useState(storage ?? contactArray);
+  const [filter, setFilter] = useState('');
 
-  handleSubmit = contactItem => {
+  const handleSubmit = contactItem => {
     const { name } = contactItem;
-    if (this.state.contacts.some(contact => contact.name === name)) {
+    if (contacts.some(contact => contact.name === name)) {
       Notiflix.Report.warning('Warning', `${name} is already in contacts.`);
     } else {
-      this.setState(({ contacts }) => ({
-        contacts: [contactItem, ...contacts],
-      }));
+      setContacts(prevState => [contactItem, ...prevState]);
     }
   };
 
-  deleteContact = id => {
-    this.setState(PrevState => ({
-      contacts: PrevState.contacts.filter(contact => contact.id !== id),
-    }));
+  const deleteContact = id => {
+    setContacts(contacts => contacts.filter(contact => contact.id !== id));
   };
 
-  onChangeFilter = evt => {
-    this.setState({ filter: evt.currentTarget.value });
+  const onChangeFilter = evt => {
+    setFilter(evt.currentTarget.value);
   };
 
-  getFilterContact = () => {
-    const { filter, contacts } = this.state;
+  const getFilterContact = () => {
     const normalizedFilter = filter.toLowerCase();
     return contacts.filter(contact =>
       contact.name.toLowerCase().includes(normalizedFilter)
     );
   };
 
-  componentDidMount() {
-    const parsedContacts = JSON.parse(localStorage.getItem('contacts'));
-    // this.setState({ contacts: parsedContacts });
-    if (parsedContacts) {
-      this.setState({ contacts: parsedContacts });
-    }
-  }
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.contacts !== prevState.contacts) {
-      localStorage.setItem('contacts', JSON.stringify(this.state.contacts));
-    }
-  }
+  useEffect(() => {
+    window.localStorage.setItem('contacts', JSON.stringify(contacts));
+  }, [contacts]);
 
-  render() {
-    const visibleContacts = this.getFilterContact();
-    return (
-      <Container>
-        <Section title={'Phonebook'}>
-          <ContactForm handleSubmit={this.handleSubmit} />
-        </Section>
-        <Section title={'Contacts'}>
-          <Filter onChangeFilter={this.onChangeFilter} />
-          {this.state.contacts.length ? (
-            <ContactList
-              onVisibleContacts={visibleContacts}
-              onDeleteContact={this.deleteContact}
-            />
-          ) : (
-            <Notification />
-          )}
-        </Section>
-      </Container>
-    );
-  }
+  const visibleContacts = getFilterContact();
+  return (
+    <Container>
+      <Section title={'Phonebook'}>
+        <ContactForm handleSubmit={handleSubmit} />
+      </Section>
+      <Section title={'Contacts'}>
+        <Filter onChangeFilter={onChangeFilter} />
+        {contacts.length ? (
+          <ContactList
+            onVisibleContacts={visibleContacts}
+            onDeleteContact={deleteContact}
+          />
+        ) : (
+          <Notification />
+        )}
+      </Section>
+    </Container>
+  );
 }
 
 Notiflix.Report.init({
